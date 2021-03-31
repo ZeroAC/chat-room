@@ -13,3 +13,4 @@ objForEach(s);
 delete s.hello;//删除某个键
 console.log();
 objForEach(s);
+console.log(s.hasOwnProperty('tt'));//查找对象中是否存在key == tt
