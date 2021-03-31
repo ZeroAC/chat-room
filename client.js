@@ -34,4 +34,10 @@ let client = net.connect({port:3006,host:'127.0.0.1'},()=>{//创建客户端到�
         rl.setPrompt(usr.nickName + ' > ');//提示符 让用户输入 
         rl.prompt();
     });
+    client.on('end',()=>{//服务器关闭时
+        process.stdout.clearLine();//清除提示符
+        console.log('\n****************************');
+        console.log('*System already close, Bye!*');
+        console.log('****************************\n');
+    });
 });

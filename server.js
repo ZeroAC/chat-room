@@ -11,17 +11,27 @@ let server = net.createServer((socket)=>{
             serverData = {nickName:'System',data:strPrompt,status:'systemNotice'};//设置发往客户端的数据
             broadcast(nickName);//并向除了刚加入的所有用户显示新用户加入的提示
         }
-        else if(status === 'chatting'){
+        else if(status === 'chatting'){//客户端发送聊天时
             serverData = {nickName:nickName,data:chatContext,status:'chatting'};//数据模式为普通消息
             broadcast(nickName);
         }
+    });
+
+    socket.on('close',()=>{//客户端到服务器的链接断开时  
+        let nickName;
+        Object.keys(clientList).forEach((key)=>{//从用户列表中删除该链接
+            if(clientList[key]==socket) {nickName = key, delete clientList[key];return;}
+        });
+        let strPrompt = `${nickName} already offline!! The current number is: ${Object.keys(clientList).length}`;//提示内容
+        console.log(strPrompt);//在服务器显示该提示
+        serverData = {nickName:'System',data:strPrompt,status:'systemNotice'};//设置发往客户端的数据
+        broadcast();//广播
     });
 });
 server.listen(3006,()=>{
     console.log('server running at http://127.0.0.1:3006');
 });
-
-function broadcast(banName=''){//对除了banName的所有用户广播该数据
+function broadcast(banName=''){//对除了banName的所有用户广播该数据 因为自己发的消息没必要再广播给自己
     for(let nickname in clientList){
         if(nickname==banName&&serverData.status!='systemNotice') continue;//系统公告不能被禁止
         clientList[nickname].write(JSON.stringify(serverData));
