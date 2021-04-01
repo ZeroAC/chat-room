@@ -31,7 +31,7 @@ rl.on('line', (input) => {
             clientData.status = 'p2p';
             clientData.callNickname = commandData[1];//获得私聊的对象名
             let message = '';
-            for(let i = 2; i < commandData.length; i++) message += commandData[i];
+            for(let i = 2; i < commandData.length; i++) message += commandData[i]+' ';
             clientData.chatContext = message;
             client.write(JSON.stringify(clientData));
         }
@@ -56,13 +56,26 @@ client.on('data', (serverData) => {
         process.stdout.clearLine();//清除提示符
         console.log('\n      | ' + nickName + ' : ' + data + ' |\n');
     }
-    else if (status == 'chatting'||status == 'call') {//显示发来的聊天内容
+    else if (status == 'chatting') {//显示群聊内容
         process.stdout.clearLine();//清除提示符
         console.log(nickName + ' : ' + data);
+    }
+    else if(status == 'call'){//显示私聊内容
+        process.stdout.clearLine();//清除提示符
+        console.log('|$| '+ nickName + ' : ' + data + ' |$|');
+    }
+    else if(status == 'callErr'){//私聊失败 即对象不存在
+        process.stdout.clearLine();//清除提示符
+        console.log('The nickname for private chat does not exist!');
     }
     else if(status =='displayUsr'){//显示所有用户
         process.stdout.clearLine();//清除提示符
         console.log(data);
+    }
+    else if(status == 'repeated'){//服务器发来用户名重复的问题
+        console.log('The username already exists!! please re-enter');
+        signIn();
+        return;
     }
     rl.setPrompt(clientData.nickName + ' > ');//提示符 让用户输入 
     rl.prompt();
@@ -82,7 +95,5 @@ function signIn() {
     rl.question('please enter your nickname:', (nickName) => {//询问 然后获取输入的昵称
         clientData.nickName = nickName, clientData.status = 'signIn';
         client.write(JSON.stringify(clientData));//把用户信息发送给服务器 对象转为json格式
-        rl.setPrompt(clientData.nickName + ' > ');//提示符 让用户输入 
-        rl.prompt();
     });
 }

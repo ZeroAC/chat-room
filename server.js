@@ -1,3 +1,4 @@
+const { stat } = require('fs');
 const net = require('net');
 const { port, hostname } = require('./config.js');
 let clientList = {};//存储所有的用户 键值对形式 用户名:对应的连接
@@ -17,12 +18,17 @@ server.on('connection', (socket) => {
     //处理客户端传来的数据
     socket.on('data', (data) => {
         let { nickName, status, chatContext } = JSON.parse(data);//json格式转为对象 快速赋值时 需要变量名与对象内键值对的名字相同
-        if (status == 'signIn') {//新用户登录时 
+        if (status == 'signIn') {//新用户登录时
+            if(clientList.hasOwnProperty(nickName)) {//用户名重复时
+                serverData.status = 'repeated';
+                socket.write(JSON.stringify(serverData));
+                return;
+            } 
             clientList[nickName] = socket;//加入用户列表
             let strPrompt = `Welcome ${nickName} to join chat!! The current number is: ${Object.keys(clientList).length}`;//提示内容
             console.log(strPrompt);//在服务器显示该提示
             serverData = { nickName: 'System', data: strPrompt, status: 'systemNotice' };//设置发往客户端的数据
-            broadcast(nickName);//并向除了刚加入的所有用户显示新用户加入的提示
+            broadcast();//向所有用户显示新用户加入的提示
         }
         else if (status == 'chatting') {//客户端发送聊天时
             serverData = { nickName: nickName, data: chatContext, status: 'chatting' };//数据模式为普通消息
@@ -30,7 +36,7 @@ server.on('connection', (socket) => {
         }
         else if(status == 'getAllUsr'){//获取所有用户信息
             AllUsrData = '';
-            Object.keys(clientList).forEach((key)=>{
+            Object.keys(clientList).forEach((key)=>{//生成用户信息的显示格式
                 let padLeftLen = (20-key.length)/2;//每个信息输出占20个位置
                 let padRightLen = (20-key.length)%2 ? padLeftLen+1:padLeftLen;
                 AllUsrData += '\n'+'|' + '.'.repeat(padLeftLen)+'  '+key+'  '+'.'.repeat(padRightLen) +' |';
@@ -41,8 +47,15 @@ server.on('connection', (socket) => {
         }
         else if(status == 'p2p'){
             let {callNickname} = JSON.parse(data);//获得私聊的对象名
-            serverData = {nickName: nickName,data:chatContext,status:'call'};
-            clientList[callNickname].write(JSON.stringify(serverData));//把消息发送过去
+            if(!clientList.hasOwnProperty(callNickname)){//私聊的对象名不存在
+                serverData.status = 'callErr';
+                socket.write(JSON.stringify(serverData));
+            } 
+            else{
+                serverData = {nickName: nickName,data:chatContext,status:'call'};
+                clientList[callNickname].write(JSON.stringify(serverData));//把消息发送给私聊对象
+            } 
+            
         }
     });
     //客户端到服务器的连接断开时  
